@@ -1,0 +1,12 @@
+<toast launch="action=viewPhoto&amp;photoId=92187">
+ <visual>
+  <binding template="ToastGeneric">
+   <image placement="appLogoOverride" hint-crop="circle" src="file://%EXEPATH%\face.png"/>
+   <text>%HEADER%</text>
+   <text>%TEXT%</text>
+   <image src="file://%IMAGE%"/>
+  </binding>
+ </visual>
+ <actions>
+ </actions>
+</toast>

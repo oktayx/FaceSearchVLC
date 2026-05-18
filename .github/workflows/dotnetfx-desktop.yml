@@ -1,0 +1,55 @@
+name: Build and Release FaceSearchVLC
+
+on:
+  push:
+    tags:
+      - 'v*' # Automatically triggers when you push a tag like "v1.0" or "v1.2"
+  workflow_dispatch: # Allows you to manually trigger a release from the Actions tab
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest # Required for MSBuild and .NET Framework 4.5.2
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore nfwFolderCheckGithub.sln
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build the Solution
+        # Compiles the solution in Release mode exactly as specified in your README
+        run: msbuild nfwFolderCheckGithub.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+      - name: Prepare and Zip Release Assets
+        shell: pwsh
+        run: |
+          # Create a staging folder for the compiled files
+          New-Item -ItemType Directory -Force -Path _ReleaseOutput
+          
+          # Copy outputs from the main application. 
+          # Assuming toast1.xml and face.png are marked as "Copy to Output Directory" in Visual Studio,
+          # they will be included here alongside the executable.
+          Copy-Item -Path "nfwFolderCheck\bin\Release\*" -Destination _ReleaseOutput -Recurse -Force
+          
+          # If ConsoleToast builds to a separate directory, copy its outputs too
+          if (Test-Path "ConsoleToast\bin\Release") {
+              Copy-Item -Path "ConsoleToast\bin\Release\*" -Destination _ReleaseOutput -Recurse -Force
+          }
+          
+          # Zip everything into a single distribution file
+          Compress-Archive -Path _ReleaseOutput\* -DestinationPath FaceSearchVLC-Release.zip
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: FaceSearchVLC-Release.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

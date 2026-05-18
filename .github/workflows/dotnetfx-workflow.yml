@@ -1,4 +1,4 @@
-name: Build and Release FaceSearchVLC
+name: Build and Release FaceSearchVLC #2
 
 on:
   push:

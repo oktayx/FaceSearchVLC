@@ -53,3 +53,5 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          Solution_Name: nfwFolderCheckGithub.sln
+          Configuration: Release

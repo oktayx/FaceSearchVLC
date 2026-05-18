@@ -1,0 +1,78 @@
+name: Build and Release FaceSearchVLC
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore nfwFolderCheckGithub.sln
+
+      - name: Install .NET 4.5 Targeting Pack
+        shell: pwsh
+        run: |
+          $url = "https://www.nuget.org/api/v2/package/Microsoft.NETFramework.ReferenceAssemblies.net45/1.0.3"
+          Invoke-WebRequest -Uri $url -OutFile "net45.zip"
+          Expand-Archive -Path "net45.zip" -DestinationPath "net45"
+          $target = "C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5"
+          New-Item -ItemType Directory -Path $target -Force
+          Copy-Item -Path "net45\build\.NETFramework\v4.5\*" -Destination $target -Recurse -Force
+
+      - name: Pre-Build Fixes (HintPaths & Windows.winmd)
+        shell: pwsh
+        run: |
+          # 1. Fix NuGet Paths: Copy root packages into the project folders so MSBuild can find them
+          if (Test-Path "packages") {
+              Write-Host "Copying packages to project directories..."
+              Copy-Item -Path "packages" -Destination "ConsoleToast\packages" -Recurse -Force
+              Copy-Item -Path "packages" -Destination "nfwFolderCheck\packages" -Recurse -Force
+          }
+          
+          # 2. Fix WinRT APIs: Find Windows.winmd on the runner and place it in the output folder
+          $winmd = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\UnionMetadata" -Filter "Windows.winmd" -Recurse | Select-Object -First 1
+          if ($winmd) {
+              Write-Host "Found Windows.winmd. Copying to build directory..."
+              New-Item -ItemType Directory -Force -Path "ConsoleToast\bin\Release"
+              Copy-Item $winmd.FullName -Destination "ConsoleToast\bin\Release\Windows.winmd"
+          }
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build the Solution
+        run: msbuild nfwFolderCheckGithub.sln /p:Configuration=Release /p:Platform="Any CPU" /p:SignManifests=false
+
+      - name: Prepare and Zip Release Assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path _ReleaseOutput
+          
+          if (Test-Path "nfwFolderCheck\bin\Release\*") {
+              Copy-Item -Path "nfwFolderCheck\bin\Release\*" -Destination _ReleaseOutput -Recurse -Force
+          }
+          
+          if (Test-Path "ConsoleToast\bin\Release\*") {
+              Copy-Item -Path "ConsoleToast\bin\Release\*" -Destination _ReleaseOutput -Recurse -Force
+          }
+          
+          Compress-Archive -Path _ReleaseOutput\* -DestinationPath FaceSearchVLC-Release.zip
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: FaceSearchVLC-Release.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

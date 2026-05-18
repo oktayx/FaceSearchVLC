@@ -1,4 +1,4 @@
-name: Build and Release FaceSearchVLC #2
+name: Build and Release FaceSearchVLC 2
 
 on:
   push:
@@ -74,5 +74,8 @@ jobs:
         with:
           files: FaceSearchVLC-Release.zip
           generate_release_notes: true
+          # This line checks if a tag triggered the run. 
+          # If not (manual run), it creates a tag like "v1.0.4" based on the run number.
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v1.0.{0}', github.run_number) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -35,7 +35,7 @@ jobs:
 
       - name: Build the Solution
         # Compiles the solution in Release mode exactly as specified in your README
-        run: msbuild nfwFolderCheckGithub.sln /p:Configuration=Release /p:Platform="Any CPU"
+        run: msbuild nfwFolderCheckGithub.sln /p:Configuration=Release /p:Platform="Any CPU" /p:SignManifests=false
 
       - name: Prepare and Zip Release Assets
         shell: pwsh

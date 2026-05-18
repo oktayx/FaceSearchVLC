@@ -109,8 +109,16 @@ a:hover {
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.25);
+}
+
+.btn-primary:hover {
   color: #fff;
+}
+
+.btn-secondary:hover {
+  color: var(--primary-dark);
+  border-color: var(--primary);
 }
 
 .btn-primary {
